@@ -321,12 +321,8 @@ export default function App() {
                 )}
 
                 {activeTab === "files" && (
-                  <div style={{ textAlign: "center", padding: "60px 20px", color: "#4B5563" }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>📁</div>
-                    <div style={{ fontSize: 14 }}>رفع الملفات متاح في النسخة القادمة</div>
-                    <div style={{ fontSize: 12, marginTop: 8, color: "#374151" }}>يمكنك استخدام Google Drive ومشاركة الرابط في التاسك</div>
-                  </div>
-                )}
+  <FilesTab projectId={activeProjectId} />
+)}
               </>
             )
           }
@@ -469,4 +465,94 @@ export default function App() {
       )}
     </div>
   );
+  function FilesTab({ projectId }) {
+  const [files, setFiles] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newFile, setNewFile] = useState({ name: "", url: "", type: "sheet" });
+  const [loading, setLoading] = useState(true);
+
+  async function loadFiles() {
+    const res = await sb(`project_files?project_id=eq.${projectId}&order=created_at.desc`);
+    if (res) setFiles(res);
+    setLoading(false);
+  }
+
+  useEffect(() => { if (projectId) loadFiles(); }, [projectId]);
+
+  async function addFile() {
+    if (!newFile.name.trim() || !newFile.url.trim()) return;
+    let url = newFile.url.trim();
+    if (!url.startsWith("http")) url = "https://" + url;
+    await sb("project_files", "POST", { project_id: projectId, name: newFile.name, url, type: newFile.type });
+    setNewFile({ name: "", url: "", type: "sheet" });
+    setShowAdd(false);
+    loadFiles();
+  }
+
+  async function deleteFile(id) {
+    await sb(`project_files?id=eq.${id}`, "DELETE");
+    loadFiles();
+  }
+
+  const icons = { sheet: "📊", doc: "📄", other: "🔗" };
+  const labels = { sheet: "Google Sheet", doc: "Google Doc", other: "رابط آخر" };
+  const inputStyle = { background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#E2E8F0", padding: "10px 14px", borderRadius: 10, fontSize: 14, direction: "rtl", outline: "none", width: "100%" };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={() => setShowAdd(true)} style={{ background: "linear-gradient(135deg, #7C3AED, #3B82F6)", border: "none", color: "#fff", padding: "10px 20px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>+ إضافة ملف</button>
+      </div>
+
+      {loading
+        ? <div style={{ textAlign: "center", padding: 40, color: "#6B7280" }}>جاري التحميل...</div>
+        : files.length === 0
+          ? (
+            <div style={{ textAlign: "center", padding: "60px 20px", color: "#4B5563" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>📁</div>
+              <div style={{ fontSize: 14 }}>لا توجد ملفات بعد</div>
+              <div style={{ fontSize: 12, marginTop: 8 }}>أضيفي روابط Google Sheet أو Google Doc الخاصة بالمشروع</div>
+            </div>
+          )
+          : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {files.map(f => (
+                <div key={f.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ fontSize: 32 }}>{icons[f.type] || "🔗"}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{f.name}</div>
+                    <div style={{ fontSize: 11, color: "#6B7280" }}>{labels[f.type]} · {new Date(f.created_at).toLocaleDateString("ar-EG")}</div>
+                  </div>
+                  <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ background: "rgba(124,58,237,0.2)", border: "1px solid rgba(124,58,237,0.4)", color: "#A78BFA", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, textDecoration: "none" }}>فتح ↗</a>
+                  <button onClick={() => deleteFile(f.id)} style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "#F87171", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>🗑</button>
+                </div>
+              ))}
+            </div>
+          )
+      }
+
+      {showAdd && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
+          <div dir="rtl" style={{ background: "#1E1B3A", border: "1px solid rgba(124,58,237,0.4)", borderRadius: 20, padding: 32, width: 420, position: "relative" }}>
+            <button onClick={() => setShowAdd(false)} style={{ position: "absolute", top: 16, left: 16, background: "none", border: "none", color: "#9CA3AF", cursor: "pointer", fontSize: 20 }}>✕</button>
+            <h2 style={{ margin: "0 0 24px", fontSize: 20, fontWeight: 700 }}>إضافة ملف</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <input value={newFile.name} onChange={e => setNewFile(p => ({ ...p, name: e.target.value }))} placeholder="اسم الملف (مثال: ميزانية يونيو)" style={inputStyle} />
+              <input value={newFile.url} onChange={e => setNewFile(p => ({ ...p, url: e.target.value }))} placeholder="رابط Google Sheet أو Doc" style={inputStyle} />
+              <div>
+                <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 8 }}>نوع الملف</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[["sheet","📊 Google Sheet"],["doc","📄 Google Doc"],["other","🔗 رابط آخر"]].map(([val, label]) => (
+                    <button key={val} onClick={() => setNewFile(p => ({ ...p, type: val }))} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: newFile.type === val ? "2px solid #7C3AED" : "1px solid rgba(255,255,255,0.15)", background: newFile.type === val ? "rgba(124,58,237,0.2)" : "transparent", color: newFile.type === val ? "#A78BFA" : "#9CA3AF", cursor: "pointer", fontSize: 12 }}>{label}</button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={addFile} style={{ background: "linear-gradient(135deg, #7C3AED, #3B82F6)", border: "none", color: "#fff", padding: 12, borderRadius: 10, cursor: "pointer", fontSize: 15, fontWeight: 700, marginTop: 8 }}>إضافة</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 }
