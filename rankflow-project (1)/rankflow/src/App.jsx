@@ -25,15 +25,6 @@ function timeAgo(ts) {
   return `منذ ${Math.floor(diff / 86400)} يوم`;
 }
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  useEffect(() => {
-    const fn = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", fn);
-    return () => window.removeEventListener("resize", fn);
-  }, []);
-  return isMobile;
-}
 
 function FilesTab({ projectId }) {
   const [files, setFiles] = useState([]);
@@ -117,7 +108,22 @@ function FilesTab({ projectId }) {
 }
 
 export default function App() {
-  const isMobile = useIsMobile();
+const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  const check = () =>
+    setIsMobile(
+      window.innerWidth <= 767 ||
+      window.screen.width <= 767 ||
+      /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
+    );
+
+  check();
+
+  window.addEventListener("resize", check);
+
+  return () => window.removeEventListener("resize", check);
+}, []);
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
