@@ -1,0 +1,37 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #0D0B2A;
+  color: #E2E8F0;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124,58,237,0.4);
+  border-radius: 3px;
+}
+
+input, select, button {
+  font-family: inherit;
+}
+
+button {
+  transition: opacity 0.15s, transform 0.1s;
+}
+button:hover {
+  opacity: 0.88;
+}
+button:active {
+  transform: scale(0.97);
+}
